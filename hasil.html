@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Hasil Suara Publik - SMPN 219 Jakarta</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .result-container { max-width: 800px; margin: 40px auto; background: var(--white); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-brand">
+      <img src="Assets/img/logo_osis.png" alt="Logo">
+      <h1>LIVE HASIL SUARA - SMPN 219 JAKARTA</h1>
+    </div>
+  </header>
+
+  <div class="result-container">
+    <h2 style="color: var(--dark-blue);">Perolehan Suara Real-Time</h2>
+    <p style="margin: 10px 0 20px;">Hasil akumulasi suara secara transparan.</p>
+    
+    <label style="font-weight:bold;">Pilih Acara Pemilihan:</label>
+    <select id="public-pemilihan-select" style="max-width:300px; margin:0 auto 20px; display:block;"></select>
+
+    <div style="background: var(--light-blue); padding:20px; border-radius:8px;">
+      <canvas id="publicBarChart"></canvas>
+    </div>
+    
+    <button class="btn-primary" style="margin-top:20px;" onclick="location.href='index.html'">Kembali ke Beranda</button>
+  </div>
+
+  <footer class="app-footer">&copy; SMPN219JAKARTA. All rights reserved.</footer>
+  <script type="module" src="hasil.js"></script>
+</body>
+</html>

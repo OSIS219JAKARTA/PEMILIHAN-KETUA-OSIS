@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Pemilihan Ketua OSIS - SMPN 219 Jakarta</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .selection-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+    .role-cards { display: flex; gap: 30px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+    .role-card { background: var(--white); padding: 40px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 250px; cursor: pointer; border-top: 6px solid var(--primary-blue); transition: 0.3s; }
+    .role-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+    .role-card h2 { color: var(--dark-blue); margin-bottom: 10px; font-size: 1.5rem; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-brand">
+      <img src="Assets/img/logo_osis.png" alt="Logo OSIS">
+      <h1>SMPN 219 JAKARTA</h1>
+      <img src="Assets/img/logo_sekolah.png" alt="Logo Sekolah">
+    </div>
+  </header>
+  <div class="selection-container">
+    <h2 style="color: var(--dark-blue); font-size: 2rem;">Sistem E-Voting Ketua OSIS</h2>
+    <p style="margin-top: 10px; color: #4a5568;">Pilih akses masuk perangkat Anda</p>
+    <div class="role-cards">
+      <div class="role-card" onclick="location.href='voter.html'">
+        <h2>Voter</h2>
+        <p>Siswa, Guru, & Tata Usaha</p>
+      </div>
+      <div class="role-card" onclick="location.href='admin.html'">
+        <h2>Admin</h2>
+        <p>Kelola Sistem & Pemilihan</p>
+      </div>
+    </div>
+    <div style="margin-top: 30px;">
+      <button class="btn-warning" onclick="location.href='hasil.html'">Lihat Hasil Live (Publik)</button>
+    </div>
+  </div>
+  <footer class="app-footer">&copy; SMPN219JAKARTA. All rights reserved.</footer>
+</body>
+</html>
