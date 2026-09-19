@@ -158,8 +158,27 @@ async function loadCandidates(pemilihanId) {
               });
             });
 
-            document.getElementById('voting-section').innerHTML = `<h2 style="text-align:center; color:var(--success); margin-top:50px;">Suara Berhasil Dikirim! Terima Kasih.</h2>`;
-            setTimeout(() => location.reload(), 2000);
+            // 1. Tampilkan pesan sukses sebentar
+document.getElementById('voting-section').innerHTML = `
+  <div style="text-align:center; padding: 50px;">
+    <h2 style="color: var(--success); margin-bottom: 10px;">Suara Berhasil Dikirim!</h2>
+    <p>Terima kasih telah menggunakan hak suara Anda.</p>
+    <p style="color: gray; font-size: 0.9rem; margin-top: 20px;">Mengembalikan ke menu utama...</p>
+  </div>
+`;
+
+// 2. Kembalikan ke halaman login secara instan tanpa reload browser
+setTimeout(() => {
+  document.getElementById('voting-section').style.display = 'none';
+  document.getElementById('login-section').style.display = 'block';
+  
+  // Reset form login agar kosong kembali untuk siswa berikutnya
+  document.getElementById('voter-login-form').reset();
+  
+  // Kosongkan variabel sesi lokal
+  currentVoterDocId = null;
+}, 2000);
+
           } catch (error) {
             console.error("Kesalahan update suara:", error);
             showAlert(error.message || "Terjadi kesalahan jaringan, silakan coba lagi.", "Error");
