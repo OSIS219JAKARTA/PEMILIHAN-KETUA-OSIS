@@ -2,36 +2,44 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Hasil Suara Publik - SMPN 219 Jakarta</title>
+  <title>Login Voter - SMPN 219 Jakarta</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    .result-container { max-width: 800px; margin: 40px auto; background: var(--white); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-  </style>
 </head>
 <body>
   <header class="app-header">
     <div class="header-brand">
       <img src="Assets/img/logo_osis.png" alt="Logo">
-      <h1>LIVE HASIL SUARA - SMPN 219 JAKARTA</h1>
+      <h1>SMPN 219 JAKARTA - VOTER PANEL</h1>
     </div>
   </header>
 
-  <div class="result-container">
-    <h2 style="color: var(--dark-blue);">Perolehan Suara Real-Time</h2>
-    <p style="margin: 10px 0 20px;">Hasil akumulasi suara secara transparan.</p>
-    
-    <label style="font-weight:bold;">Pilih Acara Pemilihan:</label>
-    <select id="public-pemilihan-select" style="max-width:300px; margin:0 auto 20px; display:block;"></select>
+  <!-- Bagian Form Login Voter -->
+  <div id="login-section" class="container-box">
+    <h2 style="text-align: center; margin-bottom: 20px; color: var(--dark-blue);">Login Voter</h2>
+    <form id="voter-login-form">
+      <label for="voter-nis">NIS / Identitas:</label>
+      <input type="text" id="voter-nis" required placeholder="Masukkan NIS Anda">
+      
+      <label for="voter-password">Password:</label>
+      <input type="password" id="voter-password" required placeholder="Masukkan Password">
+      
+      <button type="submit" class="btn-primary" style="width: 100%;">Masuk & Mulai Memilih</button>
+      <button type="button" class="btn-danger" style="width: 100%; margin-top: 10px;" onclick="location.href='index.html'">Kembali</button>
+    </form>
+  </div>
 
-    <div style="background: var(--light-blue); padding:20px; border-radius:8px;">
-      <canvas id="publicBarChart"></canvas>
-    </div>
+  <!-- Bagian Bilik Suara / Voting Section -->
+  <div id="voting-section" style="display: none; padding: 40px;">
+    <h2 style="text-align: center; color: var(--dark-blue);">Halo, <span id="voter-name-display"></span></h2>
+    <p style="text-align: center; margin-bottom: 20px;">Silakan pilih kandidat Ketua & Wakil Ketua OSIS terbaik menurut Anda.</p>
     
-    <button class="btn-primary" style="margin-top:20px;" onclick="location.href='index.html'">Kembali ke Beranda</button>
+    <!-- Tempat daftar kandidat dimuat secara otomatis oleh voter.js -->
+    <div id="candidates-list" class="candidate-grid"></div>
   </div>
 
   <footer class="app-footer">&copy; SMPN219JAKARTA. All rights reserved.</footer>
-  <script type="module" src="hasil.js"></script>
+  
+  <!-- Memanggil file JavaScript Voter -->
+  <script type="module" src="voter.js"></script>
 </body>
 </html>
