@@ -117,14 +117,18 @@ async function loadCandidates(pemilihanId) {
       
       // Menggunakan kelas .candidate-vision agar teks panjang otomatis turun dan kotak membesar
       card.innerHTML = `
-        <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
-        <h3>No. Urut ${data.noUrut}</h3>
-        <p style="font-weight:bold; font-size:1.1rem; margin:10px 0;">${escapeHTML(data.nama)}</p>
-        <div class="candidate-vision">
-          <strong>Visi & Misi:</strong><br>${escapeHTML(data.visi)}
-        </div>
-        <button class="btn-primary vote-btn" style="margin-top: 15px; width:100%;">Pilih Kandidat</button>
-      `;
+  <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
+  <h3>No. Urut ${data.noUrut}</h3>
+  <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
+  
+  <!-- Menggunakan class khusus agar kotak membesar dan teks turun -->
+  <div class="candidate-vision-box">
+    <strong>Visi & Misi:</strong><br>${escapeHTML(data.visi)}
+  </div>
+
+  <button class="btn-primary vote-btn" style="width:100%;">Pilih Kandidat</button>
+`;
+
 
       const voteButton = card.querySelector('button');
 
