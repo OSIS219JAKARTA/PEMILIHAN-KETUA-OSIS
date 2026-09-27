@@ -5,29 +5,46 @@
   <title>Login Voter - SMPN 219 Jakarta</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* FIX SPESIFIK UNTUK FOTO & KOTAK VISI-MISI */
-    .candidate-card img {
-      width: 100% !important;
-      height: 220px !important;
-      object-fit: contain !important; /* Foto utuh tidak terpotong */
-      background-color: #f1f3f5 !important; /* Latar belakang abu-abu rapi */
-      border-radius: 8px !important;
-      margin-bottom: 15px !important;
-    }
+  /* KARTU KANDIDAT YANG RAPI & SEJAJAR */
+  .candidate-card {
+    border: 1px solid var(--gray);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    background: var(--white);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
 
-    .candidate-vision-box {
-      background: #f0f4f9 !important;
-      padding: 12px !important;
-      border-radius: 6px !important;
-      text-align: left !important;
-      font-size: 0.9rem !important;
-      margin: 10px 0 15px 0 !important;
-      word-break: break-word !important;
-      white-space: pre-line !important; /* Baris baru / enter dari admin terbaca */
-      max-height: none !important;     /* Kotak otomatis membesar ke bawah */
-      overflow-y: visible !important;
-    }
-  </style>
+  /* SOLUSI FOTO: Tinggi fix 220px, background putih bersih (tanpa warna abu-abu),
+     menggunakan contain agar foto utuh, tapi background menyatu dengan kartu */
+  .candidate-card img {
+    width: 100% !important;
+    height: 220px !important;
+    object-fit: contain !important; 
+    background-color: #ffffff !important; /* Diubah jadi putih bersih agar menyatu dengan kartu */
+    border-radius: 8px !important;
+    margin-bottom: 15px !important;
+    padding: 5px; /* Beri sedikit jarak aman di dalam */
+  }
+
+  /* KOTAK VISI MISI OTOMATIS MEMBESAR KE BAWAH */
+  .candidate-vision-box {
+    background: #f0f4f9 !important;
+    padding: 12px !important;
+    border-radius: 6px !important;
+    text-align: left !important;
+    font-size: 0.9rem !important;
+    margin: 10px 0 15px 0 !important;
+    word-break: break-word !important;
+    white-space: pre-line !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+</style>
+
 </head>
 <body>
   <header class="app-header">
