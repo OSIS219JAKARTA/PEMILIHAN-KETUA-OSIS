@@ -30,49 +30,34 @@ button:hover { opacity: 0.85; }
 input, select, textarea { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid var(--gray); border-radius: 6px; outline: none; font-size: 1rem; }
 input:disabled, select:disabled { background-color: #e2e8f0; cursor: not-allowed; }
 
-/* Container Login & Voting */
+/* Tabel */
+.table-responsive { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-top: 15px; min-width: 500px; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--gray); font-size: 0.95rem; }
+th { background-color: var(--primary-blue); color: var(--white); }
+
+/* Layout Admin */
+.admin-layout { display: flex; flex: 1; flex-direction: row; }
+.sidebar { width: 250px; background-color: var(--dark-blue); color: var(--white); padding: 20px 0; flex-shrink: 0; }
+.sidebar h3 { padding: 0 20px 15px; font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar ul { list-style: none; margin-top: 15px; }
+.sidebar li { padding: 15px 20px; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; font-size: 0.95rem; }
+.sidebar li:hover, .sidebar li.active { background-color: var(--primary-blue); border-left: 4px solid var(--white); }
+.main-content { flex: 1; padding: 20px; overflow-y: auto; }
+.dashboard-section { display: none; }
+.dashboard-section.active { display: block; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+.stat-card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-blue); }
+.stat-card h3 { font-size: 0.85rem; color: #718096; }
+.stat-card p { font-size: 1.6rem; font-weight: bold; color: var(--dark-blue); margin-top: 5px; }
+
+/* Kotak Login & Kandidat Awal */
 .container-box { max-width: 500px; margin: 60px auto; background: var(--white); padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-
-/* Kandidat Grid & Kartu */
-.candidate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 25px; }
-
-.candidate-card { 
-  border: 1px solid var(--gray); 
-  border-radius: 10px; 
-  padding: 20px; 
-  text-align: center; 
-  background: var(--white); 
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-/* Perbaikan Foto: Utuh tidak terpotong & ada latar belakang rapi */
-.candidate-card img { 
-  width: 100%; 
-  height: 200px; 
-  object-fit: contain; 
-  background-color: #f8f9fa; 
-  border-radius: 8px; 
-  margin-bottom: 15px; 
-}
-
-.candidate-card h3 { color: var(--dark-blue); margin-bottom: 5px; }
-
-/* Kotak Visi Misi yang fleksibel untuk teks panjang */
-.candidate-vision {
-  background: #f0f4f9;
-  padding: 12px;
-  border-radius: 6px;
-  text-align: left;
-  font-size: 0.9rem;
-  margin-top: 10px;
-  word-break: break-word;
-  white-space: pre-line;
-  max-height: none;
-  overflow-y: visible;
-}
+.candidate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-top: 25px; }
+.candidate-card { border: 1px solid var(--gray); border-radius: 10px; padding: 20px; text-align: center; background: var(--white); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.candidate-card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+.candidate-card h3 { color: var(--dark-blue); }
 
 /* =========================================
    GLOBAL CUSTOM ALERT & CONFIRM MODAL 
@@ -115,5 +100,24 @@ input:disabled, select:disabled { background-color: #e2e8f0; cursor: not-allowed
   header.app-header { padding: 10px 15px; }
   .header-brand img { height: 35px; }
   .header-brand h1 { font-size: 0.9rem; }
-  .container-box { margin: 20px 15px; padding: 20px; }
+
+  .admin-layout { flex-direction: column; }
+  .sidebar { width: 100%; padding: 10px 0; }
+  .sidebar h3 { display: none; }
+  .sidebar ul { display: flex; overflow-x: auto; margin-top: 0; white-space: nowrap; }
+  .sidebar li { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; display: inline-block; }
+  .sidebar li:hover, .sidebar li.active { border-left: none; border-bottom: 3px solid var(--white); }
+  
+  .main-content { padding: 15px; }
+
+  .card-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card p { font-size: 1.3rem; }
+  
+  .container-box, .result-container { margin: 20px 15px; padding: 20px; }
+}
+
+@media screen and (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .header-brand { gap: 8px; }
+  .header-brand h1 { font-size: 0.8rem; }
 }
