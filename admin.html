@@ -15,8 +15,8 @@
     </div>
   </header>
 
-  <!-- Login Admin Box -->
-  <div id="admin-login-box" style="max-width: 400px; margin: 80px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+  <!-- Login Admin Box (Secara default disembunyikan untuk mencegah tumpang tindih) -->
+  <div id="admin-login-box" style="display: none; max-width: 400px; margin: 80px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
     <h2 style="text-align:center; color:var(--dark-blue); margin-bottom:20px;">Login Admin</h2>
     <form id="admin-login-form">
       <label for="admin-user">Email:</label>
@@ -56,10 +56,12 @@
         <div style="background: white; padding: 20px; border-radius: 8px;">
           <h3>Daftar Akun Belum Melakukan Vote</h3>
           <input type="text" id="search-belum-vote" placeholder="Cari NIS atau Nama..." style="max-width: 300px; margin-top:10px;">
-          <table id="table-belum-vote">
-            <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="table-responsive">
+            <table id="table-belum-vote">
+              <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -81,10 +83,12 @@
           <button class="btn-danger" id="cancel-kandidat-btn">Batal</button>
         </div>
 
-        <table id="table-kandidat">
-          <thead><tr><th>No</th><th>Nama Paslon</th><th>Pemilihan</th><th>Aksi</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-responsive">
+          <table id="table-kandidat">
+            <thead><tr><th>No</th><th>Nama Paslon</th><th>Pemilihan</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- 2. VOTER -->
@@ -124,10 +128,12 @@
         </div>
 
         <input type="text" id="search-voter" placeholder="Cari NIS atau Nama Voter..." style="max-width: 300px; margin-top:10px;">
-        <table id="table-voter">
-          <thead><tr><th>NIS</th><th>Nama</th><th>Role</th><th>Kelas</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-responsive">
+          <table id="table-voter">
+            <thead><tr><th>NIS</th><th>Nama</th><th>Role</th><th>Kelas</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- 3. PEMILIHAN -->
@@ -140,10 +146,12 @@
           <label>Tanggal Selesai:</label><input type="datetime-local" id="p-selesai">
           <button class="btn-primary" id="save-pemilihan-btn" style="margin-top: 10px;">Simpan Event</button>
         </div>
-        <table id="table-pemilihan">
-          <thead><tr><th>Judul Acara</th><th>Mulai</th><th>Selesai</th><th>Aksi</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-responsive">
+          <table id="table-pemilihan">
+            <thead><tr><th>Judul Acara</th><th>Mulai</th><th>Selesai</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- 4. HASIL SUARA -->
