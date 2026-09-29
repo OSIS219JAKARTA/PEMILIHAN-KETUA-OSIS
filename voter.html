@@ -24,24 +24,37 @@
     width: 100% !important;
     height: 220px !important;
     object-fit: contain !important; 
-    background-color: #ffffff !important; /* Diubah jadi putih bersih agar menyatu dengan kartu */
+    background-color: #ffffff !important; 
     border-radius: 8px !important;
     margin-bottom: 15px !important;
-    padding: 5px; /* Beri sedikit jarak aman di dalam */
+    padding: 5px; 
   }
 
-  /* KOTAK VISI MISI OTOMATIS MEMBESAR KE BAWAH */
-  .candidate-vision-box {
-    background: #f0f4f9 !important;
-    padding: 12px !important;
-    border-radius: 6px !important;
-    text-align: left !important;
-    font-size: 0.9rem !important;
-    margin: 10px 0 15px 0 !important;
-    word-break: break-word !important;
-    white-space: pre-line !important;
-    max-height: none !important;
-    overflow-y: visible !important;
+  /* KONTANINER DUA KOLOM UNTUK VISI MISI & PROKER */
+  .vision-proker-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 10px 0 20px 0;
+  }
+
+  /* KOTAK VISI MISI DAN PROKER OTOMATIS MEMBESAR KE BAWAH */
+  .candidate-info-box {
+    background: #f0f4f9;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: left;
+    font-size: 0.9rem;
+    word-break: break-word;
+    white-space: pre-line;
+    height: 100%;
+  }
+  
+  /* RESPONSIVE: JADIKAN 1 KOLOM JIKA DI HP */
+  @media (max-width: 600px) {
+    .vision-proker-container {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 
@@ -60,10 +73,10 @@
     <form id="voter-login-form">
       <label for="voter-nis">NIS / Identitas:</label>
       <input type="text" id="voter-nis" required placeholder="Masukkan NIS Anda">
-      
+
       <label for="voter-password">Password:</label>
       <input type="password" id="voter-password" required placeholder="Masukkan Password">
-      
+
       <button type="submit" class="btn-primary" style="width: 100%;">Masuk & Mulai Memilih</button>
       <button type="button" class="btn-danger" style="width: 100%; margin-top: 10px;" onclick="location.href='index.html'">Kembali</button>
     </form>
@@ -73,12 +86,12 @@
   <div id="voting-section" style="display: none; padding: 40px;">
     <h2 style="text-align: center; color: var(--dark-blue);">Halo, <span id="voter-name-display"></span></h2>
     <p style="text-align: center; margin-bottom: 20px;">Silakan pilih kandidat Ketua & Wakil Ketua OSIS terbaik menurut Anda.</p>
-    
+
     <div id="candidates-list" class="candidate-grid"></div>
   </div>
 
   <footer class="app-footer">&copy; SMPN219JAKARTA. All rights reserved.</footer>
-  
+
   <script type="module" src="voter.js"></script>
 </body>
 </html>
