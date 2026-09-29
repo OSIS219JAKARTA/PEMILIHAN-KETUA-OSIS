@@ -83,7 +83,7 @@ document.getElementById('voter-login-form').addEventListener('submit', async (e)
 async function loadCandidates(pemilihanId) {
   const container = document.getElementById('candidates-list');
   container.innerHTML = "<p style='text-align:center; grid-column: 1 / -1;'>Memuat kandidat, mohon tunggu...</p>";
-  
+
   try {
     let q;
     if (pemilihanId) {
@@ -93,7 +93,7 @@ async function loadCandidates(pemilihanId) {
     }
 
     let querySnapshot = await getDocs(q);
-    
+
     if (querySnapshot.empty && pemilihanId) {
       const fallbackSnap = await getDocs(collection(db, "candidates"));
       if (!fallbackSnap.empty) {
@@ -114,30 +114,33 @@ async function loadCandidates(pemilihanId) {
     candidates.forEach((data) => {
       const card = document.createElement('div');
       card.className = 'candidate-card';
-      
-      // Menggunakan kelas .candidate-vision agar teks panjang otomatis turun dan kotak membesar
+
       card.innerHTML = `
-  <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
-  <h3>No. Urut ${data.noUrut}</h3>
-  <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
-  
-  <!-- Menggunakan class khusus agar kotak membesar dan teks turun -->
-  <div class="candidate-vision-box">
-    <strong>Visi & Misi:</strong><br>${escapeHTML(data.visi)}
-  </div>
+        <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
+        <h3>No. Urut ${data.noUrut}</h3>
+        <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
+        
+        <!-- Pemisahan dua kolom menggunakan grid -->
+        <div class="vision-proker-container">
+          <div class="candidate-info-box">
+            <strong style="color:var(--dark-blue);">Visi & Misi:</strong><br><br>${escapeHTML(data.visi)}
+          </div>
+          <div class="candidate-info-box">
+            <strong style="color:var(--dark-blue);">Program Kerja:</strong><br><br>${escapeHTML(data.proker || '-')}
+          </div>
+        </div>
 
-  <button class="btn-primary vote-btn" style="width:100%;">Pilih Kandidat</button>
-`;
-
+        <button class="btn-primary vote-btn" style="width:100%;">Pilih Kandidat</button>
+      `;
 
       const voteButton = card.querySelector('button');
 
       voteButton.addEventListener('click', () => {
         showConfirm("Apakah Anda yakin dengan pilihan ini? Suara tidak dapat diubah setelah dikonfirmasi.", async () => {
-          
+
           document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
           voteButton.innerText = "Mengirim Suara...";
-          
+
           const now = new Date();
           const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
 
