@@ -38,18 +38,19 @@ th { background-color: var(--primary-blue); color: var(--white); }
 
 /* =========================================
    PERBAIKAN UTAMA: LAYOUT ADMIN & SIDEBAR
+   (Hapus !important pada display agar JS bisa bekerja)
    ========================================= */
 .admin-layout { 
-  display: flex !important; 
+  display: flex; /* <-- Ini yang bikin error sebelumnya, JANGAN pakai !important disini */
   flex: 1; 
-  flex-direction: row !important; 
+  flex-direction: row; 
   width: 100%;
   min-height: calc(100vh - 130px);
   align-items: stretch;
 }
 
 .sidebar { 
-  width: 260px !important; 
+  width: 260px; 
   min-width: 260px;
   background-color: var(--dark-blue); 
   color: var(--white); 
@@ -84,7 +85,7 @@ th { background-color: var(--primary-blue); color: var(--white); }
 }
 
 .main-content { 
-  flex: 1 !important; 
+  flex: 1; 
   padding: 30px; 
   overflow-y: auto; 
   background-color: var(--light-blue);
@@ -154,12 +155,12 @@ th { background-color: var(--primary-blue); color: var(--white); }
   .sidebar ul { display: flex; overflow-x: auto; margin-top: 0; white-space: nowrap; }
   .sidebar li { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; display: inline-block; }
   .sidebar li:hover, .sidebar li.active { border-left: none; border-bottom: 3px solid var(--white); }
-  
+
   .main-content { padding: 15px; width: 100% !important; }
 
   .card-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-card p { font-size: 1.3rem; }
-  
+
   .container-box { margin: 20px 15px; padding: 20px; }
 }
 
