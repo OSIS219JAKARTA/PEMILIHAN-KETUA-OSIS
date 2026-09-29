@@ -1,7 +1,14 @@
 import { showAlert, showConfirm } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// Fungsi untuk mencegah serangan XSS
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag] || tag));
+}
 
 // Fungsi untuk mengenkripsi password (SHA-256)
 async function hashPassword(password) {
@@ -22,602 +29,169 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-// ATUR PERSISTENSI: Sesi login hanya bertahan selama tab browser aktif
-setPersistence(auth, browserSessionPersistence).catch((error) => {
-  console.error("Gagal mengatur persistensi auth:", error);
-});
+let currentVoterDocId = null;
 
-let currentPemilihanList = [];
-let unvotedListCache = [];
-let allVotersCache = [];
-
-// ================= CEK STATUS LOGIN ADMIN =================
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    document.getElementById('admin-login-box').style.display = 'none';
-    document.getElementById('admin-dashboard').style.display = 'flex';
-    
-    await loadPemilihanDropdowns();
-    loadHomeStats();
-  } else {
-    document.getElementById('admin-login-box').style.display = 'block';
-    document.getElementById('admin-dashboard').style.display = 'none';
-    
-    const emailInput = document.getElementById('admin-user');
-    const passInput = document.getElementById('admin-pass');
-    if(emailInput) emailInput.value = "";
-    if(passInput) passInput.value = "";
-  }
-});
-
-// ================= PROSES LOGIN ADMIN =================
-document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+document.getElementById('voter-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const submitBtn = e.target.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
+  submitBtn.disabled = true; // Cegah double submit login
   submitBtn.innerText = "Memproses...";
 
-  const email = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
-  
+  const nis = document.getElementById('voter-nis').value.trim();
+  const plainPassword = document.getElementById('voter-password').value.trim();
+  const hashedPassword = await hashPassword(plainPassword); // Hash password yang diketik
+
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    showAlert("Selamat Datang, Admin!", "Login Sukses");
+    // Gunakan hashedPassword untuk mencocokkan ke database
+    const q = query(collection(db, "voters"), where("nis", "==", nis), where("password", "==", hashedPassword));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      showAlert("NIS atau Password salah!", "Login Gagal");
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Masuk & Mulai Memilih";
+      return;
+    }
+
+    let voterData = null;
+    querySnapshot.forEach((docSnap) => {
+      currentVoterDocId = docSnap.id;
+      voterData = docSnap.data();
+    });
+
+    if (voterData.status !== "aktif") {
+      showAlert("Akun ini sudah digunakan untuk memilih atau sedang dinonaktifkan!", "Akses Ditolak");
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Masuk & Mulai Memilih";
+      return;
+    }
+
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('voting-section').style.display = 'block';
+    document.getElementById('voter-name-display').innerText = escapeHTML(voterData.nama);
+
+    loadCandidates(voterData.pemilihanId);
   } catch (error) {
-    console.error("Error:", error);
-    showAlert("Email atau Password salah!", "Login Gagal");
+    console.error("Error login:", error);
+    showAlert("Terjadi kesalahan sistem saat mencoba login.", "Error");
     submitBtn.disabled = false;
-    submitBtn.innerText = "Masuk Dashboard";
+    submitBtn.innerText = "Masuk & Mulai Memilih";
   }
 });
 
-// ================= TOMBOL LOGOUT KHUSUS =================
-const logoutBtn = document.getElementById('logout-menu');
-if(logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
-    showConfirm("Yakin ingin keluar dari panel admin?", async () => {
-      try {
-        await signOut(auth);
-        window.location.href = "admin.html";
-      } catch (err) {
-        console.error("Gagal logout:", err);
-        showAlert("Gagal melakukan logout.", "Error");
-      }
-    }, "Konfirmasi Logout");
-  });
-}
-
-// ================= NAVIGATION MENU LAINNYA =================
-document.querySelectorAll('.sidebar .menu-item').forEach(item => {
-  if(item.id === 'logout-menu') return;
-
-  item.addEventListener('click', () => {
-    document.querySelectorAll('.sidebar .menu-item').forEach(i => i.classList.remove('active'));
-    document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
-    
-    item.classList.add('active');
-    const target = item.getAttribute('data-target');
-    const targetSection = document.getElementById(`section-${target}`);
-    if(targetSection) targetSection.classList.add('active');
-    
-    if(target === 'home') loadHomeStats();
-    if(target === 'kandidat') loadKandidatTable();
-    if(target === 'voter') loadVoterTable();
-    if(target === 'pemilihan') loadPemilihanTable();
-    if(target === 'hasil') loadHasilSuaraChart();
-  });
-});
-
-// ================= 3. PEMILIHAN =================
-async function loadPemilihanDropdowns() {
-  const snap = await getDocs(collection(db, "pemilihan"));
-  currentPemilihanList = [];
-  snap.forEach(d => currentPemilihanList.push({id: d.id, ...d.data()}));
-  
-  const optionsHtml = currentPemilihanList.map(p => `<option value="${p.id}">${p.judul}</option>`).join('');
-  
-  const kSelect = document.getElementById('k-pemilihan-select');
-  const vSelect = document.getElementById('v-pemilihan-select');
-  const vEditSelect = document.getElementById('v-pemilihan-edit-select');
-  const hSelect = document.getElementById('hasil-pemilihan-select');
-  const lSelect = document.getElementById('laporan-pemilihan-select');
-
-  if(kSelect) kSelect.innerHTML = optionsHtml;
-  if(vSelect) vSelect.innerHTML = optionsHtml;
-  if(vEditSelect) vEditSelect.innerHTML = optionsHtml;
-  if(hSelect) hSelect.innerHTML = optionsHtml;
-  if(lSelect) lSelect.innerHTML = optionsHtml;
-}
-
-document.getElementById('save-pemilihan-btn').addEventListener('click', async (e) => {
-  const btn = e.target;
-  const judul = document.getElementById('p-judul').value;
-  const mulai = document.getElementById('p-mulai').value;
-  const selesai = document.getElementById('p-selesai').value;
-  if(!judul || !mulai || !selesai) return showAlert("Isi semua data acara terlebih dahulu!", "Peringatan");
-
-  btn.disabled = true;
-  btn.innerText = "Menyimpan...";
+async function loadCandidates(pemilihanId) {
+  const container = document.getElementById('candidates-list');
+  container.innerHTML = "<p style='text-align:center; grid-column: 1 / -1;'>Memuat kandidat, mohon tunggu...</p>";
 
   try {
-    await addDoc(collection(db, "pemilihan"), { judul, mulai, selesai });
-    showAlert("Acara Pemilihan berhasil dibuat!", "Sukses");
-    document.getElementById('p-judul').value = "";
-    document.getElementById('p-mulai').value = "";
-    document.getElementById('p-selesai').value = "";
-    loadPemilihanDropdowns();
-    loadPemilihanTable();
-  } catch(err) {
-    showAlert("Gagal menyimpan acara.", "Error");
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Simpan Event";
-  }
-});
-
-async function loadPemilihanTable() {
-  const tbody = document.querySelector('#table-pemilihan tbody');
-  if(!tbody) return;
-  tbody.innerHTML = currentPemilihanList.map(p => `
-    <tr>
-      <td>${p.judul}</td>
-      <td>${p.mulai.replace('T', ' ')}</td>
-      <td>${p.selesai.replace('T', ' ')}</td>
-      <td><button class="btn-danger" onclick="hapusPemilihan('${p.id}')">Hapus & Bersihkan</button></td>
-    </tr>
-  `).join('');
-}
-
-window.hapusPemilihan = function(id) {
-  showConfirm("PERINGATAN! Ini akan menghapus acara pemilihan beserta SEMUA Voternya dan Kandidat di dalamnya! Lanjutkan?", async () => {
-    try {
-      const cSnap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", id)));
-      cSnap.forEach(d => deleteDoc(doc(db, "candidates", d.id)));
-      
-      const vSnap = await getDocs(query(collection(db, "voters"), where("pemilihanId", "==", id)));
-      vSnap.forEach(d => deleteDoc(doc(db, "voters", d.id)));
-      
-      await deleteDoc(doc(db, "pemilihan", id));
-      
-      showAlert("Data event berhasil dihapus total.", "Sukses");
-      await loadPemilihanDropdowns();
-      loadPemilihanTable();
-    } catch(e) { showAlert("Error menghapus event.", "Gagal"); }
-  }, "Hapus Acara Pemilihan");
-}
-
-// ================= 0. HOME STATS =================
-async function loadHomeStats() {
-  const votersSnap = await getDocs(collection(db, "voters"));
-  let total = 0, sudah = 0, belum = 0;
-  unvotedListCache = [];
-  
-  votersSnap.forEach(docSnap => {
-    total++;
-    const data = docSnap.data();
-    if(data.sudahVote) {
-      sudah++;
+    let q;
+    if (pemilihanId) {
+      q = query(collection(db, "candidates"), where("pemilihanId", "==", pemilihanId));
     } else {
-      belum++;
-      unvotedListCache.push(data);
+      q = collection(db, "candidates");
     }
-  });
 
-  const elTotal = document.getElementById('stat-total-akun');
-  const elSudah = document.getElementById('stat-sudah-vote');
-  const elBelum = document.getElementById('stat-belum-vote');
-  const elSuara = document.getElementById('stat-total-suara');
+    let querySnapshot = await getDocs(q);
 
-  if(elTotal) elTotal.innerText = total;
-  if(elSudah) elSudah.innerText = sudah;
-  if(elBelum) elBelum.innerText = belum;
-  if(elSuara) elSuara.innerText = sudah;
-  
-  renderUnvotedTable(unvotedListCache);
-}
-
-function renderUnvotedTable(dataArray) {
-  const tbody = document.querySelector('#table-belum-vote tbody');
-  if(!tbody) return;
-  tbody.innerHTML = dataArray.map(v => `<tr><td>${v.nis}</td><td>${v.nama}</td><td>${v.kelas || '-'}</td></tr>`).join('');
-}
-
-const searchBelumVote = document.getElementById('search-belum-vote');
-if(searchBelumVote) {
-  searchBelumVote.addEventListener('input', (e) => {
-    const val = e.target.value.toLowerCase();
-    const filtered = unvotedListCache.filter(v => v.nis.toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
-    renderUnvotedTable(filtered);
-  });
-}
-
-// ================= 1. KANDIDAT =================
-document.getElementById('btn-toggle-kandidat').addEventListener('click', () => {
-  document.getElementById('form-kandidat-box').style.display = 'block';
-  document.getElementById('k-id').value = '';
-});
-document.getElementById('cancel-kandidat-btn').addEventListener('click', () => {
-  document.getElementById('form-kandidat-box').style.display = 'none';
-});
-
-document.getElementById('save-kandidat-btn').addEventListener('click', async (e) => {
-  const btn = e.target;
-  const id = document.getElementById('k-id').value;
-  const data = {
-    noUrut: parseInt(document.getElementById('k-nourut').value),
-    nama: document.getElementById('k-nama').value,
-    visi: document.getElementById('k-visi').value,
-    foto: document.getElementById('k-foto').value || 'Assets/img/logo_osis.png',
-    pemilihanId: document.getElementById('k-pemilihan-select').value,
-    suara: 0
-  };
-
-  btn.disabled = true;
-  btn.innerText = "Menyimpan...";
-
-  try {
-    if(id) {
-      delete data.suara;
-      await updateDoc(doc(db, "candidates", id), data);
-    } else {
-      await addDoc(collection(db, "candidates"), data);
-    }
-    
-    showAlert("Data kandidat berhasil disimpan!", "Sukses");
-    document.getElementById('form-kandidat-box').style.display = 'none';
-    loadKandidatTable();
-  } catch(err) {
-    showAlert("Gagal menyimpan kandidat.", "Error");
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Simpan Kandidat";
-  }
-});
-
-async function loadKandidatTable() {
-  const snap = await getDocs(collection(db, "candidates"));
-  const tbody = document.querySelector('#table-kandidat tbody');
-  if(!tbody) return;
-  let html = '';
-  snap.forEach(d => {
-    const data = d.data();
-    const eventName = currentPemilihanList.find(p => p.id === data.pemilihanId)?.judul || 'Tidak Diketahui';
-    html += `<tr>
-      <td>${data.noUrut}</td>
-      <td>${data.nama}</td>
-      <td>${eventName}</td>
-      <td>
-        <button class="btn-warning" onclick="editKandidat('${d.id}', '${data.noUrut}', '${data.nama}', '${data.visi}', '${data.foto}', '${data.pemilihanId}')">Edit</button>
-        <button class="btn-danger" onclick="hapusKandidat('${d.id}')">Hapus</button>
-      </td>
-    </tr>`;
-  });
-  tbody.innerHTML = html;
-}
-
-window.editKandidat = function(id, noUrut, nama, visi, foto, pemilihanId) {
-  document.getElementById('form-kandidat-box').style.display = 'block';
-  document.getElementById('k-id').value = id;
-  document.getElementById('k-nourut').value = noUrut;
-  document.getElementById('k-nama').value = nama;
-  document.getElementById('k-visi').value = visi;
-  document.getElementById('k-foto').value = foto;
-  document.getElementById('k-pemilihan-select').value = pemilihanId;
-}
-
-window.hapusKandidat = function(id) {
-  showConfirm("Apakah Anda yakin ingin menghapus kandidat ini?", async () => {
-    await deleteDoc(doc(db, "candidates", id));
-    showAlert("Kandidat berhasil dihapus!", "Sukses");
-    loadKandidatTable();
-  }, "Hapus Kandidat");
-}
-
-// ================= 2. VOTER =================
-document.getElementById('v-role').addEventListener('change', (e) => {
-  const disable = e.target.value !== "Siswa";
-  document.getElementById('v-kelas').disabled = disable;
-  document.getElementById('v-absen').disabled = disable;
-  if(disable) {
-    document.getElementById('v-kelas').value = "-";
-    document.getElementById('v-absen').value = "-";
-  } else {
-    document.getElementById('v-kelas').value = "";
-    document.getElementById('v-absen').value = "";
-  }
-});
-
-document.getElementById('btn-add-voter').addEventListener('click', () => {
-  document.getElementById('form-voter-title').innerText = "Buat Akun Voter Manual";
-  document.getElementById('v-id').value = ""; 
-  document.getElementById('v-nis').value = "";
-  document.getElementById('v-nama').value = "";
-  document.getElementById('v-kelas').value = "";
-  document.getElementById('v-absen').value = "";
-  document.getElementById('v-password').value = "";
-  
-  const topSelectVal = document.getElementById('v-pemilihan-select').value;
-  if(topSelectVal) document.getElementById('v-pemilihan-edit-select').value = topSelectVal;
-
-  document.getElementById('form-voter-box').style.display = 'block';
-});
-
-document.getElementById('cancel-voter-btn').addEventListener('click', () => {
-  document.getElementById('form-voter-box').style.display = 'none';
-});
-
-document.getElementById('save-voter-btn').addEventListener('click', async (e) => {
-  const btn = e.target;
-  const id = document.getElementById('v-id').value;
-  const role = document.getElementById('v-role').value;
-  const pemId = document.getElementById('v-pemilihan-edit-select').value;
-
-  if(!pemId) return showAlert("Pilih Event Pemilihan terlebih dahulu!", "Peringatan");
-
-  btn.disabled = true;
-  btn.innerText = "Menyimpan...";
-
-  // Hashing password sebelum disimpan
-  let rawPassword = document.getElementById('v-password').value;
-  if(rawPassword.length !== 64) {
-      rawPassword = await hashPassword(rawPassword);
-  }
-
-  const voterData = {
-    nis: document.getElementById('v-nis').value,
-    nama: document.getElementById('v-nama').value,
-    role: role,
-    kelas: role === "Siswa" ? document.getElementById('v-kelas').value : "-",
-    absen: role === "Siswa" ? document.getElementById('v-absen').value : "-",
-    password: rawPassword, // Simpan password yang sudah di-hash
-    pemilihanId: pemId
-  };
-
-  try {
-    if(id) {
-      await updateDoc(doc(db, "voters", id), voterData);
-      showAlert("Data Voter berhasil diperbarui!", "Sukses");
-    } else {
-      voterData.status = "aktif";
-      voterData.sudahVote = false;
-      await addDoc(collection(db, "voters"), voterData);
-      showAlert("Akun Voter ditambahkan!", "Sukses");
-    }
-    document.getElementById('form-voter-box').style.display = 'none';
-    loadVoterTable();
-  } catch (error) {
-    showAlert("Terjadi kesalahan sistem saat menyimpan.", "Error");
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Simpan Data Voter";
-  }
-});
-
-window.editVoter = function(id, nis, nama, role, kelas, absen, password, pemId) {
-  document.getElementById('form-voter-title').innerText = "Edit Akun Voter";
-  document.getElementById('form-voter-box').style.display = 'block';
-  
-  document.getElementById('v-id').value = id;
-  document.getElementById('v-nis').value = nis;
-  document.getElementById('v-nama').value = nama;
-  document.getElementById('v-role').value = role;
-  document.getElementById('v-password').value = password; // Tetap kirim hash-nya ke form untuk disimpan ulang
-  
-  if(pemId && pemId !== "undefined") {
-    document.getElementById('v-pemilihan-edit-select').value = pemId;
-  }
-
-  const disable = role !== "Siswa";
-  document.getElementById('v-kelas').disabled = disable;
-  document.getElementById('v-absen').disabled = disable;
-  document.getElementById('v-kelas').value = kelas;
-  document.getElementById('v-absen').value = absen;
-}
-
-document.getElementById('csv-file-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const pemilihanId = document.getElementById('v-pemilihan-select').value;
-  if(!pemilihanId) return showAlert("Pilih Event Pemilihan dulu sebelum import CSV!", "Peringatan");
-
-  const reader = new FileReader();
-  reader.onload = async function(event) {
-    const lines = event.target.result.split('\n');
-    let count = 0;
-    for(let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if(cols.length >= 5) {
-        let role = cols[2].trim();
-        let kls = role === 'Siswa' ? cols[3].trim() : '-';
-        let abs = role === 'Siswa' ? cols[4].trim() : '-';
-        
-        let rawPwd = cols[5] ? cols[5].trim() : cols[0].trim();
-        let hashedPwd = await hashPassword(rawPwd);
-        
-        await addDoc(collection(db, "voters"), {
-          nis: cols[0].trim(),
-          nama: cols[1].trim(),
-          role: role,
-          kelas: kls,
-          absen: abs,
-          password: hashedPwd,
-          pemilihanId: pemilihanId,
-          status: "aktif",
-          sudahVote: false
-        });
-        count++;
+    if (querySnapshot.empty && pemilihanId) {
+      const fallbackSnap = await getDocs(collection(db, "candidates"));
+      if (!fallbackSnap.empty) {
+        querySnapshot = fallbackSnap;
       }
     }
-    showAlert(`${count} Akun Voter berhasil diimport!`, "Sukses");
-    loadVoterTable();
-  };
-  reader.readAsText(file);
-});
 
-async function loadVoterTable() {
-  const snap = await getDocs(collection(db, "voters"));
-  allVotersCache = [];
-  snap.forEach(d => allVotersCache.push({id: d.id, ...d.data()}));
-  renderVoterTable(allVotersCache);
-}
+    if (querySnapshot.empty) {
+      container.innerHTML = "<p style='text-align:center; color:red; font-weight:bold; grid-column: 1 / -1;'>Belum ada kandidat yang terdaftar di sistem. Tunggu arahan Admin.</p>";
+      return;
+    }
 
-function renderVoterTable(dataArray) {
-  const tbody = document.querySelector('#table-voter tbody');
-  if(!tbody) return;
-  tbody.innerHTML = dataArray.map(v => `
-    <tr>
-      <td>${v.nis}</td>
-      <td>${v.nama}</td>
-      <td>${v.role}</td>
-      <td>${v.kelas}</td>
-      <td>
-        <span style="color:${v.status === 'aktif' ? 'green' : 'red'}; font-weight:bold;">
-          ${v.status.toUpperCase()}
-        </span>
-      </td>
-      <td>
-        <button class="btn-warning" style="margin-bottom:5px;" onclick="editVoter('${v.id}', '${v.nis}', '${v.nama}', '${v.role}', '${v.kelas}', '${v.absen}', '${v.password}', '${v.pemilihanId}')">Edit</button>
-        ${v.status === 'nonaktif' 
-          ? `<button class="btn-primary" style="margin-bottom:5px;" onclick="aktifkanAkun('${v.id}', '${v.choosedCandidate}')">Aktifkan</button>` 
-          : `<button class="btn-danger" style="margin-bottom:5px;" onclick="hapusVoter('${v.id}')">Hapus</button>`}
-      </td>
-    </tr>
-  `).join('');
-}
+    container.innerHTML = ""; 
+    const candidates = [];
+    querySnapshot.forEach(d => candidates.push({ id: d.id, ...d.data() }));
+    candidates.sort((a,b) => a.noUrut - b.noUrut); 
 
-const searchVoter = document.getElementById('search-voter');
-if(searchVoter) {
-  searchVoter.addEventListener('input', (e) => {
-    const val = e.target.value.toLowerCase();
-    const filtered = allVotersCache.filter(v => v.nis.toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
-    renderVoterTable(filtered);
-  });
-}
+    candidates.forEach((data) => {
+      const card = document.createElement('div');
+      card.className = 'candidate-card';
 
-window.hapusVoter = function(id) {
-  showConfirm("Hapus akun voter ini?", async () => {
-    await deleteDoc(doc(db, "voters", id));
-    showAlert("Voter berhasil dihapus!", "Sukses");
-    loadVoterTable();
-  }, "Hapus Voter");
-}
+      card.innerHTML = `
+        <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
+        <h3>No. Urut ${data.noUrut}</h3>
+        <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
+        
+        <!-- Pemisahan dua kolom menggunakan grid -->
+        <div class="vision-proker-container">
+          <div class="candidate-info-box">
+            <strong style="color:var(--dark-blue);">Visi & Misi:</strong><br><br>${escapeHTML(data.visi)}
+          </div>
+          <div class="candidate-info-box">
+            <strong style="color:var(--dark-blue);">Program Kerja:</strong><br><br>${escapeHTML(data.proker || '-')}
+          </div>
+        </div>
 
-// FUNGSI AKTIFKAN AKUN DENGAN PENGAMAN SUARA > 0
-window.aktifkanAkun = function(voterId, candId) {
-  showConfirm("Akun ini akan diaktifkan ulang. Suara kandidat yang dipilih sebelumnya akan dikurangi. Lanjutkan?", async () => {
-    try {
-      if(candId && candId !== "null" && candId !== "undefined") {
-        const candidateRef = doc(db, "candidates", candId);
-        const candidateSnap = await getDoc(candidateRef);
+        <button class="btn-primary vote-btn" style="width:100%;">Pilih Kandidat</button>
+      `;
 
-        if (candidateSnap.exists()) {
-          const currentSuara = candidateSnap.data().suara || 0;
-          if (currentSuara > 0) {
-            await updateDoc(candidateRef, { suara: increment(-1) });
+      const voteButton = card.querySelector('button');
+
+      voteButton.addEventListener('click', () => {
+        showConfirm("Apakah Anda yakin dengan pilihan ini? Suara tidak dapat diubah setelah dikonfirmasi.", async () => {
+
+          document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
+          voteButton.innerText = "Mengirim Suara...";
+
+          const now = new Date();
+          const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+          try {
+            await runTransaction(db, async (transaction) => {
+              const voterRef = doc(db, "voters", currentVoterDocId);
+              const candidateRef = doc(db, "candidates", data.id);
+
+              const voterDoc = await transaction.get(voterRef);
+              if (voterDoc.data().sudahVote) {
+                throw new Error("Anda sudah menggunakan hak suara!");
+              }
+
+              transaction.update(candidateRef, { suara: increment(1) });
+              transaction.update(voterRef, {
+                status: "nonaktif",
+                sudahVote: true,
+                choosedCandidate: data.id,
+                waktuVote: timeString
+              });
+            });
+
+            document.getElementById('voting-section').innerHTML = `
+              <div style="text-align:center; padding: 50px;">
+                <h2 style="color: var(--success); margin-bottom: 10px;">Suara Berhasil Dikirim!</h2>
+                <p>Terima kasih telah menggunakan hak suara Anda.</p>
+                <p style="color: gray; font-size: 0.9rem; margin-top: 20px;">Mengembalikan ke menu utama...</p>
+              </div>
+            `;
+
+            setTimeout(() => {
+              document.getElementById('voting-section').style.display = 'none';
+              document.getElementById('login-section').style.display = 'block';
+              document.getElementById('voter-login-form').reset();
+              currentVoterDocId = null;
+            }, 2000);
+
+          } catch (error) {
+            console.error("Kesalahan update suara:", error);
+            showAlert(error.message || "Terjadi kesalahan jaringan, silakan coba lagi.", "Error");
+            document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+            voteButton.innerText = "Pilih Kandidat";
           }
-        }
-      }
-
-      await updateDoc(doc(db, "voters", voterId), {
-        status: "aktif",
-        sudahVote: false,
-        choosedCandidate: null,
-        waktuVote: null
+        }, "Konfirmasi Pilihan");
       });
 
-      showAlert("Akun berhasil diaktifkan kembali.", "Sukses");
-      loadVoterTable();
-    } catch(e) { 
-      console.error(e);
-      showAlert("Gagal mereset akun.", "Error"); 
-    }
-  }, "Aktifkan Ulang Akun");
-}
-
-// ================= 4. HASIL SUARA & CHART =================
-let myAdminChart = null;
-const hasilSelect = document.getElementById('hasil-pemilihan-select');
-if(hasilSelect) {
-  hasilSelect.addEventListener('change', loadHasilSuaraChart);
-}
-
-async function loadHasilSuaraChart() {
-  const pemId = document.getElementById('hasil-pemilihan-select').value;
-  if(!pemId) return;
-
-  const ctx = document.getElementById('adminBarChart').getContext('2d');
-  const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
-  
-  let candidates = [];
-  snap.forEach(d => candidates.push(d.data()));
-  candidates.sort((a,b) => a.noUrut - b.noUrut);
-
-  let labels = candidates.map(c => `No ${c.noUrut} - ${c.nama}`);
-  let dataSuara = candidates.map(c => c.suara || 0);
-
-  if(myAdminChart) myAdminChart.destroy();
-
-  myAdminChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Perolehan Suara',
-        data: dataSuara,
-        backgroundColor: '#1b4f91'
-      }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true, ticks:{stepSize: 1} } } }
-  });
-}
-
-const exportHasilBtn = document.getElementById('export-hasil-excel-btn');
-if(exportHasilBtn) {
-  exportHasilBtn.addEventListener('click', async () => {
-    const pemId = document.getElementById('hasil-pemilihan-select').value;
-    const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
-    
-    let resultData = [];
-    snap.forEach(d => {
-      let dt = d.data();
-      resultData.push({ "Nomor Urut": dt.noUrut, "Nama Paslon": dt.nama, "Total Suara": dt.suara || 0 });
+      container.appendChild(card);
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(resultData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Suara");
-    XLSX.writeFile(workbook, "Hasil_Pemilihan.xlsx");
-  });
-}
-
-// ================= 5. LAPORAN =================
-const exportLaporanBtn = document.getElementById('export-laporan-btn');
-if(exportLaporanBtn) {
-  exportLaporanBtn.addEventListener('click', async () => {
-    const pemId = document.getElementById('laporan-pemilihan-select').value;
-    if(!pemId) return showAlert("Pilih event terlebih dahulu!", "Peringatan");
-
-    const snap = await getDocs(query(collection(db, "voters"), where("pemilihanId", "==", pemId)));
-    let laporanData = [];
-
-    snap.forEach(d => {
-      const v = d.data();
-      laporanData.push({
-        "NIS/Identitas": v.nis,
-        "Nama": v.nama,
-        "Role": v.role,
-        "Kelas": v.kelas || '-',
-        "No Absen": v.absen || '-',
-        "Tanggal & Waktu Memilih": v.waktuVote || 'Belum Memilih',
-        "Status Voting": v.sudahVote ? '1' : '0'
-      });
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(laporanData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Partisipasi");
-    XLSX.writeFile(workbook, "Laporan_Partisipasi_OSIS.xlsx");
-  });
+  } catch (error) {
+    console.error("Gagal memuat kandidat:", error);
+    container.innerHTML = "<p style='text-align:center; color:red; font-weight:bold; grid-column: 1 / -1;'>Terjadi kesalahan server saat memuat daftar kandidat.</p>";
+  }
 }
