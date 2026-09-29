@@ -67,19 +67,20 @@
       <div id="section-kandidat" class="dashboard-section">
         <h2>Kelola Kandidat</h2>
         <button class="btn-primary" id="btn-toggle-kandidat" style="margin: 15px 0;">+ Tambah Kandidat</button>
-        
+
         <div id="form-kandidat-box" style="background:white; padding:20px; border-radius:8px; display:none; margin-bottom:20px; border: 1px solid var(--gray);">
           <h3 id="form-kandidat-title" style="margin-bottom: 15px;">Tambah Kandidat</h3>
           <input type="hidden" id="k-id">
           <label>No. Urut:</label><input type="number" id="k-nourut">
           <label>Nama Paslon (Ketua & Wakil):</label><input type="text" id="k-nama">
           <label>Visi & Misi:</label><textarea id="k-visi" rows="3"></textarea>
+          <label>Program Kerja:</label><textarea id="k-proker" rows="3"></textarea>
           <label>Lokasi Foto (Misal: Assets/img/paslon1.jpg):</label><input type="text" id="k-foto" placeholder="Assets/img/logo_osis.png">
           <label>Pemilihan:</label><select id="k-pemilihan-select"></select>
           <button class="btn-success" id="save-kandidat-btn">Simpan Kandidat</button>
           <button class="btn-danger" id="cancel-kandidat-btn">Batal</button>
         </div>
-        
+
         <table id="table-kandidat">
           <thead><tr><th>No</th><th>Nama Paslon</th><th>Pemilihan</th><th>Aksi</th></tr></thead>
           <tbody></tbody>
@@ -89,7 +90,7 @@
       <!-- 2. VOTER -->
       <div id="section-voter" class="dashboard-section">
         <h2>Kelola Akun Voter</h2>
-        
+
         <div style="background:white; padding:20px; border-radius:8px; margin:15px 0; display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
           <div>
             <label>Pilih Pemilihan untuk Voter Baru:</label>
@@ -103,7 +104,7 @@
         <div id="form-voter-box" style="background:white; padding:20px; border-radius:8px; display:none; margin-bottom:20px; border: 1px solid var(--gray);">
           <h3 id="form-voter-title">Buat Akun Voter Manual</h3>
           <input type="hidden" id="v-id">
-          
+
           <label>Pilih Event Pemilihan:</label>
           <select id="v-pemilihan-edit-select"></select>
 
