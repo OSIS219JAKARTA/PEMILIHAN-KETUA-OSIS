@@ -18,8 +18,6 @@
     justify-content: space-between;
   }
 
-  /* SOLUSI FOTO: Tinggi fix 220px, background putih bersih (tanpa warna abu-abu),
-     menggunakan contain agar foto utuh, tapi background menyatu dengan kartu */
   .candidate-card img {
     width: 100% !important;
     height: 220px !important;
@@ -30,7 +28,6 @@
     padding: 5px; 
   }
 
-  /* KONTANINER DUA KOLOM UNTUK VISI MISI & PROKER */
   .vision-proker-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -38,7 +35,6 @@
     margin: 10px 0 20px 0;
   }
 
-  /* KOTAK VISI MISI DAN PROKER OTOMATIS MEMBESAR KE BAWAH */
   .candidate-info-box {
     background: #f0f4f9;
     padding: 12px;
@@ -50,14 +46,12 @@
     height: 100%;
   }
 
-  /* RESPONSIVE: JADIKAN 1 KOLOM JIKA DI HP */
   @media (max-width: 600px) {
     .vision-proker-container {
       grid-template-columns: 1fr;
     }
   }
-</style>
-
+  </style>
 </head>
 <body>
   <header class="app-header">
@@ -92,7 +86,7 @@
 
   <footer class="app-footer">&copy; SMPN219JAKARTA. All rights reserved.</footer>
 
-  <!-- WAJIB TYPE MODULE DAN HURUF KECIL -->
+  <!-- DIPAKSA HURUF KECIL SEMUA AGAR GITHUB TIDAK ERROR -->
   <script type="module" src="voter.js"></script>
 </body>
 </html>
