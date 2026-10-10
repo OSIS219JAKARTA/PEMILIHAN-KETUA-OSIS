@@ -1,3 +1,4 @@
+// DIPAKSA HURUF KECIL SEMUA AGAR GITHUB TIDAK ERROR
 import { showAlert, showConfirm } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -144,10 +145,12 @@ async function loadCandidates(pemilihanId) {
           const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
 
           try {
+            // METODE AMAN UNTUK DEMO (TANPA TRANSACTION FIREBASE)
             const voterRef = doc(db, "voters", currentVoterDocId);
             const candidateRef = doc(db, "candidates", data.id);
 
             await updateDoc(candidateRef, { suara: increment(1) });
+            
             await updateDoc(voterRef, {
               status: "nonaktif",
               sudahVote: true,
