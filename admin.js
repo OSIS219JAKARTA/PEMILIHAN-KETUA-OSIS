@@ -1,61 +1,4 @@
-// custom-alert.js
-
-// Buat elemen HTML untuk modal dan masukkan ke dalam <body>
-const modalHTML = `
-  <div id="global-modal-overlay">
-    <div id="global-modal-box">
-      <h3 id="global-modal-title">Info</h3>
-      <p id="global-modal-message">Pesan disini</p>
-      <div id="global-modal-actions" style="display: flex; gap: 10px; justify-content: center;">
-        <button id="global-btn-cancel" class="global-modal-btn btn-danger" style="display:none;">Batal</button>
-        <button id="global-btn-ok" class="global-modal-btn btn-primary">OK</button>
-      </div>
-    </div>
-  </div>
-`;
-document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-const overlay = document.getElementById('global-modal-overlay');
-const titleEl = document.getElementById('global-modal-title');
-const msgEl = document.getElementById('global-modal-message');
-const btnOk = document.getElementById('global-btn-ok');
-const btnCancel = document.getElementById('global-btn-cancel');
-
-// Fungsi Custom Alert (Pengganti alert)
-export function showAlert(message, title = "Informasi") {
-  titleEl.innerText = title;
-  msgEl.innerText = message;
-  btnCancel.style.display = 'none'; // Sembunyikan tombol batal
-
-  btnOk.onclick = () => closeGlobalModal();
-  openGlobalModal();
-}
-
-// Fungsi Custom Confirm (Pengganti confirm)
-export function showConfirm(message, onConfirmCallback, title = "Konfirmasi") {
-  titleEl.innerText = title;
-  msgEl.innerText = message;
-  btnCancel.style.display = 'block'; // Tampilkan tombol batal
-
-  btnOk.onclick = () => {
-    closeGlobalModal();
-    onConfirmCallback(); // Jalankan perintah jika OK ditekan
-  };
-
-  btnCancel.onclick = () => closeGlobalModal();
-  openGlobalModal();
-}
-
-function openGlobalModal() {
-  overlay.style.display = 'flex';
-  setTimeout(() => overlay.classList.add('show'), 10);
-}
-
-function closeGlobalModal() {
-  overlay.classList.remove('show');
-  setTimeout(() => overlay.style.display = 'none', 300);
-}
-
+import { showAlert, showConfirm } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -69,12 +12,12 @@ async function hashPassword(password) {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDVrLUJbNmH5lYkGTvKu3m95m0QCOvGT54",
-  authDomain: "pemilihan2627.firebaseapp.com",
-  projectId: "pemilihan2627",
-  storageBucket: "pemilihan2627.firebasestorage.app",
-  messagingSenderId: "970453044144",
-  appId: "1:970453044144:web:70cfecca4c9bf601812475"
+  apiKey: "AIzaSyB1Ab-K6ehYQZbjX-QxJQiodqSajGPFdmE",
+  authDomain: "pemilihan-ketos-2627.firebaseapp.com",
+  projectId: "pemilihan-ketos-2627",
+  storageBucket: "pemilihan-ketos-2627.firebasestorage.app",
+  messagingSenderId: "924205874158",
+  appId: "1:924205874158:web:be0bab0495c02d1182acff"
 };
 
 const app = initializeApp(firebaseConfig);
