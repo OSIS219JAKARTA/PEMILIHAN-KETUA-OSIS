@@ -1,7 +1,6 @@
-// DIPAKSA HURUF KECIL SEMUA AGAR GITHUB TIDAK ERROR
 import { showAlert, showConfirm } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Fungsi untuk mencegah serangan XSS
 function escapeHTML(str) {
@@ -19,14 +18,13 @@ async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Konfigurasi Firebase Baru
 const firebaseConfig = {
-  apiKey: "AIzaSyDVrLUJbNmH5lYkGTvKu3m95m0QCOvGT54",
-  authDomain: "pemilihan2627.firebaseapp.com",
-  projectId: "pemilihan2627",
-  storageBucket: "pemilihan2627.firebasestorage.app",
-  messagingSenderId: "970453044144",
-  appId: "1:970453044144:web:70cfecca4c9bf601812475"
+  apiKey: "AIzaSyB1Ab-K6ehYQZbjX-QxJQiodqSajGPFdmE",
+  authDomain: "pemilihan-ketos-2627.firebaseapp.com",
+  projectId: "pemilihan-ketos-2627",
+  storageBucket: "pemilihan-ketos-2627.firebasestorage.app",
+  messagingSenderId: "924205874158",
+  appId: "1:924205874158:web:be0bab0495c02d1182acff"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -37,14 +35,15 @@ let currentVoterDocId = null;
 document.getElementById('voter-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const submitBtn = e.target.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
+  submitBtn.disabled = true; // Cegah double submit login
   submitBtn.innerText = "Memproses...";
 
   const nis = document.getElementById('voter-nis').value.trim();
   const plainPassword = document.getElementById('voter-password').value.trim();
-  const hashedPassword = await hashPassword(plainPassword); 
+  const hashedPassword = await hashPassword(plainPassword); // Hash password yang diketik
 
   try {
+    // Gunakan hashedPassword untuk mencocokkan ke database
     const q = query(collection(db, "voters"), where("nis", "==", nis), where("password", "==", hashedPassword));
     const querySnapshot = await getDocs(q);
 
@@ -121,6 +120,7 @@ async function loadCandidates(pemilihanId) {
         <h3>No. Urut ${data.noUrut}</h3>
         <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
         
+        <!-- Pemisahan dua kolom menggunakan grid -->
         <div class="vision-proker-container">
           <div class="candidate-info-box">
             <strong style="color:var(--dark-blue);">Visi & Misi:</strong><br><br>${escapeHTML(data.visi)}
@@ -145,17 +145,22 @@ async function loadCandidates(pemilihanId) {
           const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
 
           try {
-            // METODE AMAN UNTUK DEMO (TANPA TRANSACTION FIREBASE)
-            const voterRef = doc(db, "voters", currentVoterDocId);
-            const candidateRef = doc(db, "candidates", data.id);
+            await runTransaction(db, async (transaction) => {
+              const voterRef = doc(db, "voters", currentVoterDocId);
+              const candidateRef = doc(db, "candidates", data.id);
 
-            await updateDoc(candidateRef, { suara: increment(1) });
-            
-            await updateDoc(voterRef, {
-              status: "nonaktif",
-              sudahVote: true,
-              choosedCandidate: data.id,
-              waktuVote: timeString
+              const voterDoc = await transaction.get(voterRef);
+              if (voterDoc.data().sudahVote) {
+                throw new Error("Anda sudah menggunakan hak suara!");
+              }
+
+              transaction.update(candidateRef, { suara: increment(1) });
+              transaction.update(voterRef, {
+                status: "nonaktif",
+                sudahVote: true,
+                choosedCandidate: data.id,
+                waktuVote: timeString
+              });
             });
 
             document.getElementById('voting-section').innerHTML = `
