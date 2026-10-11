@@ -144,7 +144,6 @@ async function loadHasilSuaraChart() {
             <h4 style="margin: 5px 0;">No. Urut ${c.noUrut}</h4>
             <p style="font-size: 0.95rem; font-weight: bold; margin: 5px 0; color: #333;">${c.nama}</p>
             <div class="percentage-badge">${persentase}%</div>
-            <div class="vote-detail">(${c.suara} dari ${totalSuaraMasuk} suara)</div>
           </div>
         `;
       });
