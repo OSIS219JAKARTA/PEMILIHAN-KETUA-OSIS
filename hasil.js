@@ -1,6 +1,8 @@
+import { showAlert } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+// Konfigurasi Firebase Awal Banget
 const firebaseConfig = {
   apiKey: "AIzaSyB1Ab-K6ehYQZbjX-QxJQiodqSajGPFdmE",
   authDomain: "pemilihan-ketos-2627.firebaseapp.com",
@@ -13,68 +15,88 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let publicChart = null;
+let myChart = null;
 
-async function loadDropdown() {
-  const select = document.getElementById('public-pemilihan-select');
-  const snap = await getDocs(collection(db, "pemilihan"));
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadPemilihanDropdown();
   
-  if(snap.empty) {
-    select.innerHTML = '<option>Tidak ada acara aktif</option>';
-    return;
+  const selectEl = document.getElementById('hasil-pemilihan-select');
+  if (selectEl) {
+    selectEl.addEventListener('change', loadHasilSuaraChart);
   }
-  
-  snap.forEach(d => {
-    select.innerHTML += `<option value="${d.id}">${d.data().judul}</option>`;
-  });
+});
 
-  loadPublicChart();
-}
-
-document.getElementById('public-pemilihan-select').addEventListener('change', loadPublicChart);
-
-async function loadPublicChart() {
-  const pemId = document.getElementById('public-pemilihan-select').value;
-  if(!pemId || pemId === 'Tidak ada acara aktif') return;
-
-  const ctx = document.getElementById('publicBarChart').getContext('2d');
-  const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
-  
-  let candidates = [];
-  snap.forEach(d => candidates.push(d.data()));
-  candidates.sort((a,b) => a.noUrut - b.noUrut); // Urutkan nomor paslon
-
-  let labels = candidates.map(c => `No ${c.noUrut} - ${c.nama}`);
-  let dataSuara = candidates.map(c => c.suara || 0);
-
-  if(publicChart) publicChart.destroy();
-
-  publicChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Jumlah Suara',
-        data: dataSuara,
-        backgroundColor: '#1b4f91', // Warna logo OSIS
-        borderColor: '#0d234a',
-        borderWidth: 1
-      }]
-    },
-    options: { 
-      responsive: true, 
-      scales: { 
-        y: { 
-          beginAtZero: true, 
-          ticks: { stepSize: 1 } 
-        } 
-      },
-      plugins: {
-        legend: { display: false }
-      }
+async function loadPemilihanDropdown() {
+  const selectEl = document.getElementById('hasil-pemilihan-select');
+  try {
+    const snap = await getDocs(collection(db, "pemilihan"));
+    if (snap.empty) {
+      selectEl.innerHTML = '<option value="">Belum ada event pemilihan</option>';
+      return;
     }
-  });
+
+    let optionsHtml = '';
+    snap.forEach(d => {
+      const data = d.data();
+      optionsHtml += `<option value="${d.id}">${data.judul}</option>`;
+    });
+
+    selectEl.innerHTML = optionsHtml;
+    
+    // Tampilkan chart untuk event pertama secara otomatis
+    if (selectEl.value) {
+      loadHasilSuaraChart();
+    }
+  } catch (error) {
+    console.error("Gagal memuat dropdown pemilihan:", error);
+    showAlert("Gagal memuat daftar acara pemilihan.", "Error");
+  }
 }
 
-// Inisiasi awal saat halaman dibuka
-loadDropdown();
+async function loadHasilSuaraChart() {
+  const pemId = document.getElementById('hasil-pemilihan-select').value;
+  if (!pemId) return;
+
+  const canvas = document.getElementById('adminBarChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  try {
+    const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
+
+    let candidates = [];
+    snap.forEach(d => candidates.push(d.data()));
+    candidates.sort((a, b) => a.noUrut - b.noUrut);
+
+    let labels = candidates.map(c => `No ${c.noUrut} - ${c.nama}`);
+    let dataSuara = candidates.map(c => c.suara || 0);
+
+    if (myChart) {
+      myChart.destroy();
+    }
+
+    myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Perolehan Suara',
+          data: dataSuara,
+          backgroundColor: '#1b4f91'
+        }]
+      },
+      options: { 
+        responsive: true, 
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            ticks: { stepSize: 1 } 
+          } 
+        } 
+      }
+    });
+  } catch (error) {
+    console.error("Gagal memuat chart hasil suara:", error);
+    showAlert("Terjadi kesalahan saat memuat grafik hasil suara.", "Error");
+  }
+}
