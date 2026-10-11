@@ -32,6 +32,16 @@
       margin: 20px 0 40px 0;
       max-height: 400px;
     }
+    .total-suara-box {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--dark-blue, #1b4f91);
+      margin-bottom: 20px;
+      background: #f0f4f9;
+      padding: 10px;
+      border-radius: 8px;
+    }
     /* KARTU GAMBAR HASIL SUARA KANDIDAT */
     .hasil-cards-grid {
       display: grid;
@@ -55,15 +65,20 @@
       border-radius: 6px;
       margin-bottom: 10px;
     }
-    .vote-count-badge {
+    .percentage-badge {
       display: inline-block;
       background: var(--dark-blue, #1b4f91);
       color: #ffffff;
       padding: 6px 15px;
       border-radius: 20px;
       font-weight: bold;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       margin-top: 8px;
+    }
+    .vote-detail {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -87,16 +102,20 @@
       </select>
     </div>
 
-    <!-- Grafik Bar Chart -->
+    <div id="total-suara-display" class="total-suara-box">
+      Total Suara Masuk: 0 Suara
+    </div>
+
+    <!-- Grafik Bar Chart Persentase -->
     <div class="chart-box">
       <canvas id="adminBarChart"></canvas>
     </div>
 
     <h3 style="text-align: center; color: var(--dark-blue, #1b4f91); margin-top: 40px;">
-      Ringkasan Paslon & Perolehan Suara
+      Ringkasan Persentase Suara Paslon
     </h3>
 
-    <!-- Grid Kartu Foto Paslon & Hasil Suaranya -->
+    <!-- Grid Kartu Foto Paslon & Hasil Persentase -->
     <div id="hasil-cards-container" class="hasil-cards-grid"></div>
 
     <div style="text-align: center; margin-top: 35px;">
