@@ -2,7 +2,6 @@ import { showAlert, showConfirm } from './custom-alert.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// Fungsi untuk mencegah serangan XSS
 function escapeHTML(str) {
   if (!str) return '';
   return str.replace(/[&<>'"]/g, tag => ({
@@ -10,7 +9,6 @@ function escapeHTML(str) {
   }[tag] || tag));
 }
 
-// Fungsi untuk mengenkripsi password (SHA-256)
 async function hashPassword(password) {
   const msgBuffer = new TextEncoder().encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -35,15 +33,14 @@ let currentVoterDocId = null;
 document.getElementById('voter-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const submitBtn = e.target.querySelector('button[type="submit"]');
-  submitBtn.disabled = true; // Cegah double submit login
+  submitBtn.disabled = true;
   submitBtn.innerText = "Memproses...";
 
   const nis = document.getElementById('voter-nis').value.trim();
   const plainPassword = document.getElementById('voter-password').value.trim();
-  const hashedPassword = await hashPassword(plainPassword); // Hash password yang diketik
+  const hashedPassword = await hashPassword(plainPassword);
 
   try {
-    // Gunakan hashedPassword untuk mencocokkan ke database
     const q = query(collection(db, "voters"), where("nis", "==", nis), where("password", "==", hashedPassword));
     const querySnapshot = await getDocs(q);
 
@@ -85,20 +82,12 @@ async function loadCandidates(pemilihanId) {
   container.innerHTML = "<p style='text-align:center; grid-column: 1 / -1;'>Memuat kandidat, mohon tunggu...</p>";
 
   try {
-    let q;
-    if (pemilihanId) {
-      q = query(collection(db, "candidates"), where("pemilihanId", "==", pemilihanId));
-    } else {
-      q = collection(db, "candidates");
-    }
-
+    let q = pemilihanId ? query(collection(db, "candidates"), where("pemilihanId", "==", pemilihanId)) : collection(db, "candidates");
     let querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty && pemilihanId) {
       const fallbackSnap = await getDocs(collection(db, "candidates"));
-      if (!fallbackSnap.empty) {
-        querySnapshot = fallbackSnap;
-      }
+      if (!fallbackSnap.empty) querySnapshot = fallbackSnap;
     }
 
     if (querySnapshot.empty) {
@@ -115,28 +104,21 @@ async function loadCandidates(pemilihanId) {
       const card = document.createElement('div');
       card.className = 'candidate-card';
 
-      card.innerHTML = `
-        <img src="${escapeHTML(data.foto) || 'Assets/img/logo_osis.png'}" alt="Kandidat">
-        <h3>No. Urut ${data.noUrut}</h3>
-        <p style="font-weight:bold; font-size:1.1rem; margin:5px 0;">${escapeHTML(data.nama)}</p>
-        
-        <!-- Pemisahan dua kolom menggunakan grid -->
-        <div class="vision-proker-container">
-          <div class="candidate-info-box">
-            <strong style="color:var(--dark-blue);">Visi & Misi:</strong><br><br>${escapeHTML(data.visi)}
-          </div>
-          <div class="candidate-info-box">
-            <strong style="color:var(--dark-blue);">Program Kerja:</strong><br><br>${escapeHTML(data.proker || '-')}
-          </div>
-        </div>
+      // Menggunakan gambar/poster utuh tanpa memuat teks Visi Proker panjang yang bikin rusak layout
+      const imagePath = data.foto && data.foto.trim() !== '' ? escapeHTML(data.foto) : `Assets/img/paslon${data.noUrut}.jpg`;
 
-        <button class="btn-primary vote-btn" style="width:100%;">Pilih Kandidat</button>
+      card.innerHTML = `
+        <img src="${imagePath}" onError="this.src='Assets/img/logo_osis.png'" alt="Poster Kandidat">
+        <div class="candidate-title">No. Urut ${data.noUrut}</div>
+        <div class="candidate-names">${escapeHTML(data.nama)}</div>
+
+        <button class="btn-primary vote-btn" style="width:100%;">Pilih Paslon No. ${data.noUrut}</button>
       `;
 
       const voteButton = card.querySelector('button');
 
       voteButton.addEventListener('click', () => {
-        showConfirm("Apakah Anda yakin dengan pilihan ini? Suara tidak dapat diubah setelah dikonfirmasi.", async () => {
+        showConfirm(`Apakah Anda yakin memilih Paslon No. Urut ${data.noUrut}? Suara tidak dapat diubah setelah dikonfirmasi.`, async () => {
 
           document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
           voteButton.innerText = "Mengirim Suara...";
@@ -165,7 +147,7 @@ async function loadCandidates(pemilihanId) {
 
             document.getElementById('voting-section').innerHTML = `
               <div style="text-align:center; padding: 50px;">
-                <h2 style="color: var(--success); margin-bottom: 10px;">Suara Berhasil Dikirim!</h2>
+                <h2 style="color: var(--success, green); margin-bottom: 10px;">Suara Berhasil Dikirim!</h2>
                 <p>Terima kasih telah menggunakan hak suara Anda.</p>
                 <p style="color: gray; font-size: 0.9rem; margin-top: 20px;">Mengembalikan ke menu utama...</p>
               </div>
@@ -182,7 +164,7 @@ async function loadCandidates(pemilihanId) {
             console.error("Kesalahan update suara:", error);
             showAlert(error.message || "Terjadi kesalahan jaringan, silakan coba lagi.", "Error");
             document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
-            voteButton.innerText = "Pilih Kandidat";
+            voteButton.innerText = `Pilih Paslon No. ${data.noUrut}`;
           }
         }, "Konfirmasi Pilihan");
       });
