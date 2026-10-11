@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getFirestore, collection, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-// Fungsi untuk mengenkripsi password (SHA-256)
 async function hashPassword(password) {
   const msgBuffer = new TextEncoder().encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -24,7 +23,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// ATUR PERSISTENSI: Sesi login hanya bertahan selama tab browser aktif
 setPersistence(auth, browserSessionPersistence).catch((error) => {
   console.error("Gagal mengatur persistensi auth:", error);
 });
@@ -286,7 +284,6 @@ async function loadKandidatTable() {
     const data = d.data();
     const eventName = currentPemilihanList.find(p => p.id === data.pemilihanId)?.judul || 'Tidak Diketahui';
 
-    // Escape quotes and newlines for the inline string parameter
     const visiEscaped = (data.visi || '').replace(/'/g, "\\'").replace(/\n/g, "\\n");
     const prokerEscaped = (data.proker || '').replace(/'/g, "\\'").replace(/\n/g, "\\n");
 
@@ -366,7 +363,6 @@ document.getElementById('save-voter-btn').addEventListener('click', async (e) =>
   btn.disabled = true;
   btn.innerText = "Menyimpan...";
 
-  // Hashing password sebelum disimpan
   let rawPassword = document.getElementById('v-password').value;
   if(rawPassword.length !== 64) {
       rawPassword = await hashPassword(rawPassword);
@@ -378,7 +374,7 @@ document.getElementById('save-voter-btn').addEventListener('click', async (e) =>
     role: role,
     kelas: role === "Siswa" ? document.getElementById('v-kelas').value : "-",
     absen: role === "Siswa" ? document.getElementById('v-absen').value : "-",
-    password: rawPassword, // Simpan password yang sudah di-hash
+    password: rawPassword,
     pemilihanId: pemId
   };
 
@@ -410,7 +406,7 @@ window.editVoter = function(id, nis, nama, role, kelas, absen, password, pemId) 
   document.getElementById('v-nis').value = nis;
   document.getElementById('v-nama').value = nama;
   document.getElementById('v-role').value = role;
-  document.getElementById('v-password').value = password; // Tetap kirim hash-nya ke form untuk disimpan ulang
+  document.getElementById('v-password').value = password;
 
   if(pemId && pemId !== "undefined") {
     document.getElementById('v-pemilihan-edit-select').value = pemId;
@@ -511,7 +507,6 @@ window.hapusVoter = function(id) {
   }, "Hapus Voter");
 }
 
-// FUNGSI AKTIFKAN AKUN DENGAN PENGAMAN SUARA > 0
 window.aktifkanAkun = function(voterId, candId) {
   showConfirm("Akun ini akan diaktifkan ulang. Suara kandidat yang dipilih sebelumnya akan dikurangi. Lanjutkan?", async () => {
     try {
@@ -543,7 +538,7 @@ window.aktifkanAkun = function(voterId, candId) {
   }, "Aktifkan Ulang Akun");
 }
 
-// ================= 4. HASIL SUARA & CHART =================
+// ================= 4. HASIL SUARA & CHART (DIPERBARUI DENGAN PERSENTASE & CARD) =================
 let myAdminChart = null;
 const hasilSelect = document.getElementById('hasil-pemilihan-select');
 if(hasilSelect) {
@@ -554,30 +549,102 @@ async function loadHasilSuaraChart() {
   const pemId = document.getElementById('hasil-pemilihan-select').value;
   if(!pemId) return;
 
-  const ctx = document.getElementById('adminBarChart').getContext('2d');
-  const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
+  const canvas = document.getElementById('adminBarChart');
+  const cardsContainer = document.getElementById('admin-hasil-cards-container');
+  const totalDisplay = document.getElementById('admin-total-suara-display');
 
-  let candidates = [];
-  snap.forEach(d => candidates.push(d.data()));
-  candidates.sort((a,b) => a.noUrut - b.noUrut);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-  let labels = candidates.map(c => `No ${c.noUrut} - ${c.nama}`);
-  let dataSuara = candidates.map(c => c.suara || 0);
+  try {
+    const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
 
-  if(myAdminChart) myAdminChart.destroy();
+    let candidates = [];
+    let totalSuaraMasuk = 0;
 
-  myAdminChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Perolehan Suara',
-        data: dataSuara,
-        backgroundColor: '#1b4f91'
-      }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true, ticks:{stepSize: 1} } } }
-  });
+    snap.forEach(d => {
+      const data = d.data();
+      const suara = data.suara || 0;
+      totalSuaraMasuk += suara;
+      candidates.push({ ...data, suara: suara });
+    });
+
+    candidates.sort((a,b) => a.noUrut - b.noUrut);
+
+    let labels = candidates.map(c => `No. Urut ${c.noUrut}`);
+    let dataPersentase = candidates.map(c => {
+      if (totalSuaraMasuk === 0) return 0;
+      return parseFloat(((c.suara / totalSuaraMasuk) * 100).toFixed(1));
+    });
+
+    if (totalDisplay) {
+      totalDisplay.innerText = `Total Suara Masuk: ${totalSuaraMasuk} Suara`;
+    }
+
+    if(myAdminChart) myAdminChart.destroy();
+
+    myAdminChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Persentase Suara (%)',
+          data: dataPersentase,
+          backgroundColor: '#1b4f91',
+          borderRadius: 6
+        }]
+      },
+      options: { 
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const index = context.dataIndex;
+                const rawVote = candidates[index].suara;
+                return `${context.parsed.y}% (${rawVote} suara)`;
+              }
+            }
+          }
+        },
+        scales: { 
+          y: { 
+            beginAtZero: true,
+            max: 100,
+            ticks: { 
+              callback: function(value) {
+                return value + "%";
+              }
+            } 
+          } 
+        } 
+      }
+    });
+
+    // Render Kartu Hasil Suara Paslon di Dashboard Admin
+    if (cardsContainer) {
+      cardsContainer.innerHTML = '';
+      candidates.forEach(c => {
+        const imagePath = c.foto && c.foto.trim() !== '' ? c.foto : `Assets/img/paslon${c.noUrut}.jpg`;
+        const persentase = totalSuaraMasuk > 0 ? ((c.suara / totalSuaraMasuk) * 100).toFixed(1) : 0;
+
+        cardsContainer.innerHTML += `
+          <div class="hasil-card">
+            <img src="${imagePath}" onError="this.src='Assets/img/logo_osis.png'" alt="Foto Paslon">
+            <h4 style="margin: 5px 0;">No. Urut ${c.noUrut}</h4>
+            <p style="font-size: 0.9rem; font-weight: bold; margin: 5px 0; color: #333;">${c.nama}</p>
+            <div class="percentage-badge">${persentase}%</div>
+            <div class="vote-detail">(${c.suara} dari ${totalSuaraMasuk} suara)</div>
+          </div>
+        `;
+      });
+    }
+
+  } catch(err) {
+    console.error("Gagal memuat chart admin:", err);
+    showAlert("Terjadi kesalahan saat memuat grafik hasil suara.", "Error");
+  }
 }
 
 const exportHasilBtn = document.getElementById('export-hasil-excel-btn');
