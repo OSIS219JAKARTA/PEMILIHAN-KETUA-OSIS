@@ -57,6 +57,8 @@ async function loadHasilSuaraChart() {
 
   const canvas = document.getElementById('adminBarChart');
   const cardsContainer = document.getElementById('hasil-cards-container');
+  const totalSuaraDisplay = document.getElementById('total-suara-display');
+
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
@@ -64,12 +66,27 @@ async function loadHasilSuaraChart() {
     const snap = await getDocs(query(collection(db, "candidates"), where("pemilihanId", "==", pemId)));
 
     let candidates = [];
-    snap.forEach(d => candidates.push(d.data()));
+    let totalSuaraMasuk = 0;
+
+    snap.forEach(d => {
+      const data = d.data();
+      const suara = data.suara || 0;
+      totalSuaraMasuk += suara;
+      candidates.push({ ...data, suara: suara });
+    });
+
     candidates.sort((a, b) => a.noUrut - b.noUrut);
 
-    // Label singkat agar tidak kepanjangan di Grafik
+    // Hitung persentase untuk masing-masing kandidat
     let labels = candidates.map(c => `No. Urut ${c.noUrut}`);
-    let dataSuara = candidates.map(c => c.suara || 0);
+    let dataPersentase = candidates.map(c => {
+      if (totalSuaraMasuk === 0) return 0;
+      return parseFloat(((c.suara / totalSuaraMasuk) * 100).toFixed(1));
+    });
+
+    if (totalSuaraDisplay) {
+      totalSuaraDisplay.innerText = `Total Suara Masuk: ${totalSuaraMasuk} Suara`;
+    }
 
     if (myChart) {
       myChart.destroy();
@@ -80,8 +97,8 @@ async function loadHasilSuaraChart() {
       data: {
         labels: labels,
         datasets: [{
-          label: 'Jumlah Suara',
-          data: dataSuara,
+          label: 'Persentase Suara (%)',
+          data: dataPersentase,
           backgroundColor: '#1b4f91',
           borderRadius: 6
         }]
@@ -89,27 +106,45 @@ async function loadHasilSuaraChart() {
       options: { 
         responsive: true,
         maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const index = context.dataIndex;
+                const rawVote = candidates[index].suara;
+                return `${context.parsed.y}% (${rawVote} suara)`;
+              }
+            }
+          }
+        },
         scales: { 
           y: { 
-            beginAtZero: true, 
-            ticks: { stepSize: 1 } 
+            beginAtZero: true,
+            max: 100,
+            ticks: { 
+              callback: function(value) {
+                return value + "%";
+              }
+            } 
           } 
         } 
       }
     });
 
-    // Tampilkan Kartu Foto Paslon & Hasil Suaranya
+    // Tampilkan Kartu Foto Paslon & Hasil Persentase
     if (cardsContainer) {
       cardsContainer.innerHTML = '';
       candidates.forEach(c => {
         const imagePath = c.foto && c.foto.trim() !== '' ? c.foto : `Assets/img/paslon${c.noUrut}.jpg`;
+        const persentase = totalSuaraMasuk > 0 ? ((c.suara / totalSuaraMasuk) * 100).toFixed(1) : 0;
         
         cardsContainer.innerHTML += `
           <div class="hasil-card">
             <img src="${imagePath}" onError="this.src='Assets/img/logo_osis.png'" alt="Foto Paslon">
             <h4 style="margin: 5px 0;">No. Urut ${c.noUrut}</h4>
             <p style="font-size: 0.95rem; font-weight: bold; margin: 5px 0; color: #333;">${c.nama}</p>
-            <div class="vote-count-badge">${c.suara || 0} Suara</div>
+            <div class="percentage-badge">${persentase}%</div>
+            <div class="vote-detail">(${c.suara} dari ${totalSuaraMasuk} suara)</div>
           </div>
         `;
       });
