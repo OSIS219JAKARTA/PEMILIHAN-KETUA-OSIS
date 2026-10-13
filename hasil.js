@@ -77,7 +77,6 @@ async function loadHasilSuaraChart() {
 
     candidates.sort((a, b) => a.noUrut - b.noUrut);
 
-    // Hitung persentase untuk masing-masing kandidat
     let labels = candidates.map(c => `No. Urut ${c.noUrut}`);
     let dataPersentase = candidates.map(c => {
       if (totalSuaraMasuk === 0) return 0;
@@ -131,7 +130,6 @@ async function loadHasilSuaraChart() {
       }
     });
 
-    // Tampilkan Kartu Foto Paslon & Hasil Persentase
     if (cardsContainer) {
       cardsContainer.innerHTML = '';
       candidates.forEach(c => {
@@ -144,6 +142,7 @@ async function loadHasilSuaraChart() {
             <h4 style="margin: 5px 0;">No. Urut ${c.noUrut}</h4>
             <p style="font-size: 0.95rem; font-weight: bold; margin: 5px 0; color: #333;">${c.nama}</p>
             <div class="percentage-badge">${persentase}%</div>
+            <div class="vote-detail">(${c.suara} dari ${totalSuaraMasuk} suara)</div>
           </div>
         `;
       });
