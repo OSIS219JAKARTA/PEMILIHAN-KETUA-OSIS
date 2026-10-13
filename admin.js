@@ -10,14 +10,15 @@ async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Konfigurasi Firebase Kedua
+// Konfigurasi Firebase Project back1-8cd96
 const firebaseConfig = {
-  apiKey: "AIzaSyDVrLUJbNmH5lYkGTvKu3m95m0QCOvGT54",
-  authDomain: "pemilihan2627.firebaseapp.com",
-  projectId: "pemilihan2627",
-  storageBucket: "pemilihan2627.firebasestorage.app",
-  messagingSenderId: "970453044144",
-  appId: "1:970453044144:web:70cfecca4c9bf601812475"
+  apiKey: "AIzaSyBe-aGdn-RaNqupePv3DCFrQTZIuCsZMzs",
+  authDomain: "back1-8cd96.firebaseapp.com",
+  projectId: "back1-8cd96",
+  storageBucket: "back1-8cd96.firebasestorage.app",
+  messagingSenderId: "620374428695",
+  appId: "1:620374428695:web:d4a43783ebe112519f2052",
+  measurementId: "G-YGJDF44JZ8"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -58,8 +59,8 @@ document.getElementById('admin-login-form').addEventListener('submit', async (e)
   submitBtn.disabled = true;
   submitBtn.innerText = "Memproses...";
 
-  const email = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
+  const email = document.getElementById('admin-user').value.trim();
+  const pass = document.getElementById('admin-pass').value.trim();
 
   try {
     await signInWithEmailAndPassword(auth, email, pass);
@@ -227,7 +228,7 @@ const searchBelumVote = document.getElementById('search-belum-vote');
 if(searchBelumVote) {
   searchBelumVote.addEventListener('input', (e) => {
     const val = e.target.value.toLowerCase();
-    const filtered = unvotedListCache.filter(v => v.nis.toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
+    const filtered = unvotedListCache.filter(v => String(v.nis).toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
     renderUnvotedTable(filtered);
   });
 }
@@ -495,7 +496,7 @@ const searchVoter = document.getElementById('search-voter');
 if(searchVoter) {
   searchVoter.addEventListener('input', (e) => {
     const val = e.target.value.toLowerCase();
-    const filtered = allVotersCache.filter(v => v.nis.toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
+    const filtered = allVotersCache.filter(v => String(v.nis).toLowerCase().includes(val) || v.nama.toLowerCase().includes(val));
     renderVoterTable(filtered);
   });
 }
@@ -673,25 +674,50 @@ if(exportLaporanBtn) {
     const pemId = document.getElementById('laporan-pemilihan-select').value;
     if(!pemId) return showAlert("Pilih event terlebih dahulu!", "Peringatan");
 
-    const snap = await getDocs(query(collection(db, "voters"), where("pemilihanId", "==", pemId)));
-    let laporanData = [];
+    try {
+      const snap = await getDocs(query(collection(db, "voters"), where("pemilihanId", "==", pemId)));
+      if (snap.empty) {
+        return showAlert("Belum ada data pemilih pada event ini!", "Peringatan");
+      }
 
-    snap.forEach(d => {
-      const v = d.data();
-      laporanData.push({
-        "NIS/Identitas": v.nis,
-        "Nama": v.nama,
-        "Role": v.role,
-        "Kelas": v.kelas || '-',
-        "No Absen": v.absen || '-',
-        "Tanggal & Waktu Memilih": v.waktuVote || 'Belum Memilih',
-        "Status Voting": v.sudahVote ? '1' : '0'
+      let laporanData = [];
+
+      snap.forEach(d => {
+        const v = d.data();
+        laporanData.push({
+          "NIS / NIP": String(v.nis || ''),
+          "Nama Lengkap": v.nama || '-',
+          "Role": v.role || 'Siswa',
+          "Kelas": v.kelas || '-',
+          "No Absen": v.absen || '-',
+          "Waktu Memilih": v.waktuVote ? v.waktuVote : 'Belum Memilih',
+          "Status Partisipasi": v.sudahVote ? 'Sudah Memilih' : 'Belum Memilih'
+        });
       });
-    });
 
-    const worksheet = XLSX.utils.json_to_sheet(laporanData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Partisipasi");
-    XLSX.writeFile(workbook, "Laporan_Partisipasi_OSIS.xlsx");
+      laporanData.sort((a, b) => a["Kelas"].localeCompare(b["Kelas"]) || a["NIS / NIP"].localeCompare(b["NIS / NIP"]));
+
+      const worksheet = XLSX.utils.json_to_sheet(laporanData);
+
+      worksheet['!cols'] = [
+        { wch: 18 },
+        { wch: 30 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 22 },
+        { wch: 18 }
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Partisipasi Pemilih");
+
+      XLSX.writeFile(workbook, `Laporan_Partisipasi_Pemilih_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+      showAlert("Laporan partisipasi berhasil diunduh!", "Sukses");
+    } catch (error) {
+      console.error("Gagal export laporan:", error);
+      showAlert("Terjadi kesalahan saat mengunduh laporan.", "Error");
+    }
   });
 }
