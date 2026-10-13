@@ -165,7 +165,7 @@ async function loadCandidates(pemilihanId) {
               }
 
               currentVoterDocId = null;
-            }, 2000);
+            }, 1000);
 
           } catch (error) {
             console.error("Kesalahan update suara:", error);
