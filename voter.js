@@ -110,7 +110,6 @@ async function loadCandidates(pemilihanId) {
       card.innerHTML = `
         <img src="${imagePath}" onError="this.src='Assets/img/logo_osis.png'" alt="Poster Kandidat">
         <div class="candidate-title">No. Urut ${data.noUrut}</div>
-        <div class="candidate-names">${escapeHTML(data.nama)}</div>
 
         <button class="btn-primary vote-btn" style="width:100%;">Pilih Paslon No. ${data.noUrut}</button>
       `;
