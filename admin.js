@@ -10,13 +10,14 @@ async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Konfigurasi Firebase Kedua
 const firebaseConfig = {
-  apiKey: "AIzaSyB1Ab-K6ehYQZbjX-QxJQiodqSajGPFdmE",
-  authDomain: "pemilihan-ketos-2627.firebaseapp.com",
-  projectId: "pemilihan-ketos-2627",
-  storageBucket: "pemilihan-ketos-2627.firebasestorage.app",
-  messagingSenderId: "924205874158",
-  appId: "1:924205874158:web:be0bab0495c02d1182acff"
+  apiKey: "AIzaSyDVrLUJbNmH5lYkGTvKu3m95m0QCOvGT54",
+  authDomain: "pemilihan2627.firebaseapp.com",
+  projectId: "pemilihan2627",
+  storageBucket: "pemilihan2627.firebasestorage.app",
+  messagingSenderId: "970453044144",
+  appId: "1:970453044144:web:70cfecca4c9bf601812475"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -538,7 +539,7 @@ window.aktifkanAkun = function(voterId, candId) {
   }, "Aktifkan Ulang Akun");
 }
 
-// ================= 4. HASIL SUARA & CHART (DIPERBARUI DENGAN PERSENTASE & CARD) =================
+// ================= 4. HASIL SUARA & CHART =================
 let myAdminChart = null;
 const hasilSelect = document.getElementById('hasil-pemilihan-select');
 if(hasilSelect) {
@@ -622,7 +623,6 @@ async function loadHasilSuaraChart() {
       }
     });
 
-    // Render Kartu Hasil Suara Paslon di Dashboard Admin
     if (cardsContainer) {
       cardsContainer.innerHTML = '';
       candidates.forEach(c => {
