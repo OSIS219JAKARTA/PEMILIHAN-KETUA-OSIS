@@ -156,6 +156,14 @@ async function loadCandidates(pemilihanId) {
               document.getElementById('voting-section').style.display = 'none';
               document.getElementById('login-section').style.display = 'block';
               document.getElementById('voter-login-form').reset();
+              
+              // Tambahan agar tombol login kembali aktif dan teksnya normal
+              const submitBtn = document.querySelector('#voter-login-form button[type="submit"]');
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Masuk & Mulai Memilih";
+              }
+
               currentVoterDocId = null;
             }, 2000);
 
